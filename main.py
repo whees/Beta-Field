@@ -26,7 +26,7 @@ colors = {feet: pink, start: green, middle: blue,
 names = {feet: 'feet', start: 'start',
          middle: 'middle', finish: 'finish', erase: 'erase'}
 neuron_length = 4
-neuron_area = neuron_length * (neuron_length - 1) // 2
+neuron_area = neuron_length * (neuron_length + 1) // 2
 length = 498
 area = length * (length - 1) // 2
 
@@ -34,22 +34,29 @@ area = length * (length - 1) // 2
 class BetaField:
     def __init__(self):
         self.dict = self.get_dict(area)
-        self.neuron_dict = self.get_dict(neuron_area)
+        self.neuron_dict = self.get_neuron_dict(neuron_area)
         self.weights = [[0 for n in range(neuron_area)] for a in range(area)]
         self.memory_count = 0
 
-    def get_dict(self, length):
+    def get_dict(self, l):
         dict = {}
-        for i in range(length):
-            dict[i] = self.unflatten(i)
+        for i in range(l):
+            dict[i] = self.unflatten_minus(i)
         return dict
 
-    def unflatten(self, index):
+    def get_neuron_dict(self, l):
+        dict = {}
+        for i in range(l):
+            dict[i] = self.unflatten_plus(i)
+        return dict
+
+    def unflatten_minus(self, index):
         f = int(0.5 * (8 * index + 1) ** 0.5 + 0.5)
         return f, index - f * (f - 1) // 2
 
-    def flatten(self, left, right=0):
-        return left * (left - 1) // 2 + right
+    def unflatten_plus(self, index):
+        f = int(0.5 * (8 * index + 1) ** 0.5 - 0.5)
+        return f, index - f * (f + 1) // 2
 
     def copy(self, arr):
         return [[arr[i][j] for j in range(neuron_length)] for i in range(length)]
@@ -96,6 +103,7 @@ class GUI:
                                                   .load('C:/Users/lcuev/Documents/Beta-Field/img/plastic.png'),
                                                   (size, size)).convert_alpha()
         self.places = {}
+        self.array = self.get_array()
         self.mode = 1
         self.toggle_hold = False
         self.betafield = BetaField()
@@ -109,14 +117,13 @@ class GUI:
 
         return array
 
-    def get_places(self, array):
+    def get_places(self):
         places = {}
 
         for i in range(length):
             for j in range(neuron_length):
-                if array[i][j] > 0:
+                if self.array[i][j] > 0:
                     places[i] = j
-                    break
 
         return places
 
@@ -148,12 +155,16 @@ class GUI:
                 if event.key == pygame.K_c:
                     self.places = {}
                 if event.key == pygame.K_a:
-                    self.betafield.memorize(self.get_array())
+                    self.memorize()
+
+    def memorize(self):
+        self.array = self.get_array()
+        self.betafield.memorize(self.array)
 
     def update(self):
         if self.mode == recall:
-            self.places = self.get_places(
-                self.betafield.recall(self.get_array()))
+            self.array = self.betafield.recall(self.get_array())
+            self.places = self.get_places()
         elif self.toggle_hold:
             mouse_position = pygame.mouse.get_pos()
             board_position = self.project_to_board(mouse_position)
